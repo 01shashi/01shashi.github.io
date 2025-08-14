@@ -1,1 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shashi Shekhar — Terminal Portfolio</title>
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="Shashi Shekhar — B.Tech in Production & Industrial Engineering @ IIT Delhi '25 | DSA, ML, Manufacturing Projects" />
+<style>
+.badge{
+  display:inline-block;
+  padding:2px 8px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  font-size:.85em;
+  letter-spacing:.2px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
 
+  :root{
+    --bg:#0a0c10; --panel:#0e1117; --panel-2:#0b0e14;
+    --text:#f5f7fb; --muted:#9aa3b2; --border:#1a2030;
+    --accent:#7aa2ff; --accent-2:#9b8cff; --ring:rgba(122,162,255,.25);
+    --good:#2ecc71; --warn:#f1c40f; --bad:#e74c3c; --info:#3498db;
+  }
+  html, body {
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 15px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+  #nn-bg {
+    position: fixed; inset: 0;
+    z-index: 0; background: var(--bg);
+  }
+  #terminal {
+    position: relative; z-index: 10;
+    height: 100vh; display: flex; flex-direction: column;
+    padding: 1rem; box-sizing: border-box; overflow-y: auto;
+  }
+  #output { flex-grow: 1; white-space: pre-wrap; word-wrap: break-word; }
+  #input-line { display: flex; align-items: center; gap:.5rem; }
+  #prompt { color: var(--accent); }
+  #command-input {
+    background: transparent; border: none; outline: none;
+    color: var(--text); font: inherit; flex: 1;
+  }
+  ::selection { background: var(--accent); color: var(--bg); }
+  #terminal::-webkit-scrollbar { width: 8px; }
+  #terminal::-webkit-scrollbar-thumb { background: var(--accent-2); border-radius: 4px; }
+
+  a { color: var(--accent); text-decoration: underline; }
+  a:hover { color: var(--accent-2); }
+
+  .error { color: #ff6b6b; }
+  .muted { color: var(--muted); }
+
+  /* Cards that "render" rich content inside the terminal */
+  .terminal-card {
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; margin: 8px 0; position: relative; overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    animation: popin .35s ease-out;
+  }
+  .terminal-card:before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(600px 120px at 10% -10%, var(--ring), transparent 40%);
+    opacity:.6;
+  }
+  @keyframes popin { from { transform: translateY(6px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+
+  .card-title { color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  .kv { display:grid; grid-template-columns: 140px 1fr; gap: 4px 12px; }
+  .sep { height:1px; background: var(--border); margin: 8px 0; }
+
+  /* Skills progress bars */
+  .bar { height: 8px; background: #1b2233; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+  .bar > span { display:block; height:100%; width: var(--w,0%);
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .8s ease;
+  }
+
+  /* Timeline */
+  .timeline { position:relative; margin-left: 12px; padding-left: 18px; }
+  .timeline:before { content:""; position:absolute; left:4px; top:0; bottom:0; width:2px; background: var(--border); }
+  .tl-item { position:relative; margin: 10px 0 14px; }
+  .tl-item:before { content:""; position:absolute; left:-2px; top:4px; width:10px; height:10px; background: var(--accent); border-radius:50%; box-shadow: 0 0 0 3px rgba(122,162,255,.15); }
+  .tl-head { font-weight:700 }
+  .tl-meta { color: var(--muted); font-size: .9em; }
+
+  /* Typing */
+  .typing { border-right: 2px solid var(--accent); animation: caret 1s steps(1) infinite; }
+  @keyframes caret { 50% { border-color: transparent; } }
+
+  /* Autocomplete hint */
+  #hint { color: var(--muted); opacity:.8; font-style: italic; padding-left: .25rem; }
+
+  /* Footer */
+  #footer-note { margin-top:.5rem; color: var(--muted); font-size:.85em; font-style: italic; }
+  /* Micro-graphs */
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  .kpi-grid { display:grid; grid-template-columns: 16ch 1fr auto; gap: 6px 12px; align-items: baseline; }
+  .spark { white-space: pre; letter-spacing: 1px; }
+  .heatmap { --cols: 30; display: grid; grid-template-columns: repeat(var(--cols), 12px); grid-template-rows: repeat(7, 12px); gap: 3px; }
+  .heat { width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .heat[style*="--p"] { background: color-mix(in srgb, var(--accent) var(--p, 12%), transparent); }
+  canvas.radar { width: 220px; height: 160px; max-width: 100%; display:block; margin-top:8px; border:1px solid var(--border); border-radius:8px; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00)); }
+
+</style>
+</head>
+<body>
+<canvas id="nn-bg"></canvas>
+<div id="terminal" tabindex="0" aria-label="Terminal portfolio interface" role="application" aria-live="polite" aria-relevant="additions">
+  <div id="output"></div>
+  <div id="input-line">
+    <span id="prompt">guest@shashi-portfolio:~$</span>
+    <input type="text" id="command-input" autocomplete="off" autofocus spellcheck="false" aria-label="Command input"/>
+    <span id="hint" aria-hidden="true"></span>
+  </div>
+</div>
+
+<script>
+  /* =====================================================
+     Neural network background animation (kept from v1)
+  ===================================================== */
+  const canvas = document.getElementById('nn-bg');
+  const ctx = canvas.getContext('2d');
+  let nodes = []; let w, h; let mouse = {x: -9999, y: -9999};
+  function resizeCanvas() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    nodes = [];
+    for(let i=0; i<48; i++){
+      nodes.push({ x: Math.random()*w, y: Math.random()*h, vx: (Math.random()-0.5)*0.6, vy:(Math.random()-0.5)*0.6, r: 1.8 + Math.random()*2.2 });
+    }
+  }
+  window.addEventListener('resize', resizeCanvas); resizeCanvas();
+  window.addEventListener('mousemove', e => { mouse.x=e.clientX; mouse.y=e.clientY; });
+  function drawNN() {
+    ctx.clearRect(0,0,w,h);
+    const s = getComputedStyle(document.documentElement);
+    ctx.fillStyle = s.getPropertyValue('--accent');
+    nodes.forEach(n => { ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI*2); ctx.fill(); });
+    ctx.strokeStyle = s.getPropertyValue('--accent-2');
+    ctx.globalAlpha = 0.25;
+    for(let i=0; i<nodes.length; i++){
+      for(let j=i+1; j<nodes.length; j++){
+        const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+        const dist = Math.hypot(dx,dy);
+        if(dist < 140){ ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke(); }
+      }
+    }
+    ctx.globalAlpha = 1;
+    // Subtle parallax on mouse
+    nodes.forEach(n => { const pull = 120; const dx = mouse.x - n.x, dy = mouse.y - n.y; const d = Math.hypot(dx,dy) || 1; if(d < pull){ n.vx -= dx/d * 0.002; n.vy -= dy/d * 0.002; }
+      n.x += n.vx; n.y += n.vy; if(n.x < 0 || n.x > w) n.vx *= -1; if(n.y < 0 || n.y > h) n.vy *= -1; });
+    requestAnimationFrame(drawNN);
+  }
+  drawNN();
+
+  /* =====================================================
+     Terminal utilities: output, typing, history, hints
+  ===================================================== */
+  const outputEl = document.getElementById('output');
+  const inputEl = document.getElementById('command-input');
+  const hintEl = document.getElementById('hint');
+  const promptStr = 'guest@parth-portfolio:~$';
+  const termEl = document.getElementById('terminal');
+  const SCROLL_LATENCY = 220; // ms delay before auto-scroll
+
+  const history = []; let historyIdx = -1; let skipping = false;
+
+  function printLine(text, cssClass=''){
+    const div = document.createElement('div'); if(cssClass) div.classList.add(cssClass); div.textContent = text; outputEl.appendChild(div); scrollToBottom(); return div;
+  }
+  function printHTML(html){ const div = document.createElement('div'); div.innerHTML = html; outputEl.appendChild(div); scrollToBottom(); return div; }
+  function printPromptCommand(command){ const div = document.createElement('div'); div.innerHTML = `<span style="color: var(--accent)">${promptStr}</span> <span>${escapeHtml(command)}</span>`; outputEl.appendChild(div); scrollToBottom(); }
+  function clearOutput(){ outputEl.innerHTML = ''; }
+  function scrollToBottom(){
+    setTimeout(() => {
+        termEl.scrollTo({
+        top: termEl.scrollHeight,
+        behavior: 'smooth'
+        });
+    }, SCROLL_LATENCY);
+    }
+
+  function escapeHtml(str){
+  const map = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+  return str.replace(/[&<>\"']/g, ch => map[ch]);
+}
+
+
+  async function typeOut(text, speed=14){
+    const line = document.createElement('div'); outputEl.appendChild(line); scrollToBottom();
+    const span = document.createElement('span'); span.className = 'typing'; line.appendChild(span);
+    let i=0; skipping=false;
+    const writeChunk = () => new Promise(res => setTimeout(res, 1000/Math.max(1,speed)));
+    while(i < text.length && !skipping){ span.textContent += text[i++]; scrollToBottom(); await writeChunk(); }
+    span.classList.remove('typing'); if(skipping) span.textContent = text; skipping=false; return line;
+  }
+  function skipTyping(){ skipping = true; }
+
+  // Autocomplete hinting
+  function setHint(s){ hintEl.textContent = s || ''; }
+
+  // Theming
+    const themes = [
+    {name:'ocean',  accent:'#7aa2ff', accent2:'#9b8cff', bg:'#0a0c10', panel:'#0e1117'},
+    {name:'neon',   accent:'#00e5ff', accent2:'#7cffc4', bg:'#0a0a0a', panel:'#111111'},
+    {name:'sunset', accent:'#ff8a00', accent2:'#ff3d81', bg:'#0b0a10', panel:'#120f16'},
+    {name:'forest', accent:'#64d86b', accent2:'#9be15d', bg:'#07100a', panel:'#0d1510'},
+  ];
+
+  // Minimal theming hook
+  function applyTheme(t){
+    const r = document.documentElement;
+    r.style.setProperty('--accent',    t.accent);
+    r.style.setProperty('--accent-2',  t.accent2);
+    r.style.setProperty('--bg',        t.bg);
+    r.style.setProperty('--panel',     t.panel);
+    // keep panel-2 in the same family unless you want a different depth
+    r.style.setProperty('--panel-2',   t.panel);
+  }
+
+  // Set an initial theme so the canvas and cards pick up variables immediately
+  applyTheme(themes[0]);
+
+  
+
+  // === Micro-graph utilities ===
+  function sparkline(arr){
+    if(!arr || !arr.length) return '';
+    const chars = '▁▂▃▄▅▆▇█';
+    let min = Math.min(...arr), max = Math.max(...arr);
+    if(min === max) return chars[0].repeat(arr.length);
+    return arr.map(v => {
+      const idx = Math.round((v - min) / (max - min) * (chars.length - 1));
+      return chars[idx];
+    }).join('');
+  }
+
+  function drawRadar(canvas){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(200, Math.round(rect.width * dpr));
+    const h = Math.max(150, Math.round(rect.height * dpr));
+    canvas.width = w; canvas.height = h;
+    const cx = w/2, cy = h/2 + 6;
+    const r = Math.min(w,h)*0.36;
+    const ctx = canvas.getContext('2d');
+    const s = getComputedStyle(document.documentElement);
+    const accent = s.getPropertyValue('--accent').trim() || '#7aa2ff';
+    const accent2 = s.getPropertyValue('--accent-2').trim() || '#9b8cff';
+    const values = (canvas.dataset.values||'').split(',').map(x=>parseFloat(x.trim())/100);
+    const n = values.length;
+    // grid
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    for(let ring=1; ring<=4; ring++){
+      ctx.beginPath(); const rr = (r*ring)/4; for(let i=0;i<n;i++){ const a=-Math.PI/2 + i*2*Math.PI/n; const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath(); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    for(let i=0;i<n;i++){ const a=-Math.PI/2 + i*2*Math.PI/n; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a)); ctx.stroke(); }
+    // polygon
+    ctx.beginPath();
+    for(let i=0;i<n;i++){ const a=-Math.PI/2 + i*2*Math.PI/n; const rr=r*(values[i]||0); const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath();
+    ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = accent; ctx.fill(); ctx.restore();
+    ctx.lineWidth = 2; ctx.strokeStyle = accent2; ctx.stroke();
+  }
+
+  function initChartsIn(root){
+    root.querySelectorAll('canvas[data-chart="radar"]:not([data-init])').forEach(c=>{ drawRadar(c); c.dataset.init='1'; });
+  }
+
+  const _obs = new MutationObserver(muts => { for(const m of muts){ m.addedNodes && m.addedNodes.forEach(n => { if(n.nodeType===1) initChartsIn(n); }); } });
+  _obs.observe(outputEl, { childList: true, subtree: true });
+  
+  
+  
+  
+const commands = {
+  help: {
+    desc: 'List available commands',
+    run(){
+      const cmds = Object.keys(commands).sort();
+      const rows = cmds.map(k => `<div><span class="badge">${k}</span> <span class="muted">${commands[k].desc||''}</span></div>`).join('');
+      return renderCard('Help', `<div>${rows}</div><div class="sep"></div><div class="muted">Tip: press <b>Tab</b> for autocomplete, <b>↑/↓</b> for history. Add <code>--noanim</code> to skip typing.</div>`);
+    }
+  },
+  about: {
+    desc: 'About Shashi Shekhar',
+    run(){
+      return renderCard('About', `
+        <div class="kv">
+          <div>Role</div><div><b>B.Tech Student — Production & Industrial Engineering</b></div>
+          <div>Focus</div><div>Data Structures & Algorithms, Machine Learning, Manufacturing Processes</div>
+          <div>Institute</div><div>IIT Delhi ’25</div>
+        </div>
+        <div class="sep"></div>
+        <div class="muted">Curious problem solver with hands-on projects in ML, optimization, and product manufacturing.</div>
+      `);
+    }
+  },
+  experience: {
+    desc: 'Positions of Responsibility',
+    run(){
+      return renderCard('Experience', `
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-head">Badminton Captain · Shivalik Hostel, IIT Delhi</div>
+            <div class="tl-meta">Jun 2024 – May 2025</div>
+            <div>Increased participation in institute-level/inter-hostel competitions, ensured equipment maintenance, and organized transparent team trials.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-head">Activity Head · RendezvousX, BRCA</div>
+            <div class="tl-meta">Jun 2023 – May 2024</div>
+            <div>Coordinated hospitality and logistics for IIT Delhi’s annual cultural fest, managing timelines and delegating tasks to 5+ team leads.</div>
+          </div>
+        </div>
+      `);
+    }
+  },
+  projects: {
+    desc: 'Selected Academic Projects',
+    run(){
+      const items = [
+        {t:'Restaurant Simulator', s:'DSA', d:'Min-Heap + queues to reduce wait time by ~40%.'},
+        {t:'Employee Database', s:'DSA', d:'AVL Tree for O(log n) search and BFS for hierarchy display.'},
+        {t:'File Compression/Decompression', s:'DSA', d:'Huffman coding implementation with min-heap.'},
+        {t:'SMS/Email Spam Detector', s:'ML', d:'Multinomial Naive Bayes; deployed via Streamlit + Heroku.'},
+        {t:'Injection Moulding for Bathroom Shelf', s:'Manufacturing', d:'Mould and flow analysis for product production.'},
+        {t:'Pedal Operated Hacksaw', s:'Mechanical Design', d:'Non-electric hacksaw for efficient cutting.'}
+      ];
+      const list = items.map(it => `<div class="terminal-card"><div class="card-title">${it.t}</div><div class="muted">${it.s}</div><div>${it.d}</div></div>`).join('');
+      return renderCard('Projects', list);
+    }
+  },
+  skills: {
+    desc: 'Technical Skills',
+    run(){
+      const skills = [
+        ['Java', 75], ['C++', 80], ['Python', 78], ['SQL', 70], ['HTML', 65],
+        ['Autodesk Inventor', 70], ['SolidWorks', 72], ['NumPy', 78], ['MS Excel', 80]
+      ];
+      const html = skills.map(([k,v])=> `
+        <div style="display:grid; grid-template-columns: 120px 1fr; gap:10px; align-items:center; margin:6px 0;">
+          <div>${k}</div>
+          <div class="bar"><span style="--w:${v}%"></span></div>
+        </div>`).join('');
+      const vals = skills.map(s=>s[1]).join(',');
+      const labels = skills.map(s=>s[0]).join(',');
+      const radar = `<canvas class="radar" data-chart="radar" data-values="${vals}" data-labels="${labels}"></canvas>`;
+      return renderCard('Skills', html + `<div class="sep"></div>` + radar + `<div class="sep"></div><div class="muted">Skill levels are indicative.</div>`);
+    }
+  },
+  achievements: {
+    desc: 'Achievements & Highlights',
+    run(){
+      const list = [
+        'Best Project Award — MCP101, IIT Delhi',
+        'Google Analytics Certified: Web traffic & user behavior analysis',
+        'Silver medal — Judo U-55 kg at DAV National Sports Cluster',
+        'Represented hostel in track & field (javelin, shot put, sprints, relay)',
+        'CBSE XII — 93.8%, CBSE X — 92.8%'
+      ].map(x=>`• ${x}`).join('<br>');
+      return renderCard('Achievements', list);
+    }
+  },
+  education: {
+    desc: 'Academic Background',
+    run(){
+      return renderCard('Education', `
+        <b>Indian Institute of Technology Delhi</b><br>
+        B.Tech in Production & Industrial Engineering (2021–2025)<br>
+        CGPA: 7.06/10
+        <div class="sep"></div>
+        <b>Jawahar Vidya Mandir, Ranchi</b> — CBSE XII, 93.8% (2021)<br>
+        <b>DAV Public School Topa Colliery</b> — CBSE X, 92.8% (2019)
+      `);
+    }
+  },
+  extras: {
+    desc: 'Activities & Interests',
+    run(){
+      return renderCard('Beyond Academics', `
+        • Maintenance Committee Member, Shivalik Hostel (2023–24)<br>
+        • Coordinated hostel maintenance, resolved infrastructure issues<br>
+        • Sports: Badminton, Athletics, Judo<br>
+        • Interests: Problem-solving, mechanical design, ML applications
+      `);
+    }
+  },
+  clear: { desc: 'Clear the terminal', run(){ clearOutput(); return ''; } },
+  exit: { desc: 'Reload the page', run(){ typeOut('Exiting terminal... Reloading.'); setTimeout(()=>location.reload(), 900); return ''; } },
+  theme: {
+      desc: 'Switch theme. Usage: theme [name]  (ocean, neon, sunset, forest)',
+      run(args){
+        const name = (args[0]||'').toLowerCase();
+        if(!name){
+          const badges = themes.map(t=>`<span class="badge">${t.name}</span>`).join(' ');
+          return renderCard('Themes', `Current themes: ${badges}<div class="sep"></div><div class="muted">Example: <code>theme neon</code></div>`);
+        }
+        const t = themes.find(t=>t.name===name);
+        if(!t) return renderCard('Themes', `<span class="error">Unknown theme: ${name}</span>`);
+        applyTheme(t); return renderCard('Themes', `Applied theme <b>${t.name}</b>.`);
+      }
+    },
+    open: {
+      desc: 'Open a link in new tab. Usage: open <url>' ,
+      run(args){ const url = args[0]; if(!url) return renderCard('Open', '<span class="error">Missing URL</span>'); window.open(url, '_blank'); return renderCard('Open', `Opened <a href="${url}" target="_blank" rel="noopener">${url}</a>`); }
+    },
+    neofetch: {
+      desc: 'Show a system-style summary card',
+      run(){
+        return renderCard('System', `
+          <div style="display:grid; grid-template-columns: 12ch 1fr; gap:6px 12px;">
+            <div>User</div><div>guest</div>
+            <div>Host</div><div>parth-portfolio</div>
+            <div>Kernel</div><div>web-1.0 (Canvas)</div>
+            <div>Packages</div><div>0 (No deps)</div>
+            <div>Shell</div><div>psh v2</div>
+            <div>Theme</div><div><span class="badge">accent</span> <span class="badge">accent-2</span></div>
+          </div>
+        `);
+      }
+    },
+    metrics: {
+      desc: 'KPIs with ASCII sparklines',
+      run(){
+        const series = (n, start=50, amp=8) => { const arr=[]; let v=start; for(let i=0;i<n;i++){ v += (Math.random()*2-1)*amp; arr.push(Math.max(0, v)); } return arr; };
+        const kpis = [ ['Queries/day', series(30, 120, 10), ''], ['Latency (ms)', series(30, 180, 14), ''], ['Accuracy (%)', series(30, 88, 2), '%'] ];
+        const rows = kpis.map(([name, data, unit]) => { const val = data[data.length-1].toFixed(unit==='%'?1:0); return `<div>${name}</div><div class="spark mono">${sparkline(data)}</div><div><b>${val}${unit}</b></div>`; }).join('');
+        return renderCard('Metrics', `<div class="kpi-grid">${rows}</div>`);
+      }
+    },
+    activity: {
+      desc: 'Commit-style activity heatmap',
+      run(){
+        const cols = 30, rows = 7; const cells = [];
+        for(let c=0;c<cols;c++){ for(let r=0;r<rows;r++){ const lvl = Math.round(Math.random()*100); let p = lvl<10?12: lvl<30?28: lvl<55?46: lvl<80?64:82; cells.push(`<div class="heat" style="--p:${p}%"></div>`); } }
+        const legend = ['Low','Med','High'].map((t,i)=>{ const p=[20,50,80][i]; return `<span class="badge" style="--p:${p}%; background: color-mix(in srgb, var(--accent) var(--p), transparent); border-color: var(--border);">${t}</span>`; }).join(' ');
+        return renderCard('Activity', `<div class="heatmap" style="--cols:${cols}">${cells.join('')}</div><div class="sep"></div><div class="muted">${legend}</div>`);
+      }
+    }
+};
+
+function renderCard(title, innerHTML){
+  return `<div class="terminal-card"><div class="card-title">${title}</div>${innerHTML}</div>`;
+}
+
+  /* =====================================================
+     Command processing + flags
+  ===================================================== */
+  const commandNames = Object.keys(commands);
+
+  function parse(input){
+    // Simple flag parse: --noanim
+    const parts = input.trim().split(/\s+/).filter(Boolean);
+    const flags = new Set(parts.filter(p=>p.startsWith('--')));
+    const rest = parts.filter(p=>!p.startsWith('--'));
+    const cmd = (rest[0]||'').toLowerCase();
+    const args = rest.slice(1);
+    return {cmd, args, flags};
+  }
+
+  async function processCommandInput(raw){
+    if(!raw) return;
+    printPromptCommand(raw);
+    const {cmd, args, flags} = parse(raw);
+    const entry = commands[cmd];
+    if(!entry){
+      printLine(`Command not found: ${cmd}`, 'error');
+      printLine('Type "help" to see available commands.');
+      return;
+    }
+    const out = entry.run(args) || '';
+    if(!out) return;
+    if(flags.has('--noanim')){ printHTML(out); return; }
+    // Animate: if text only, type; for HTML card, fade in
+    if(/^</.test(out.trim())){ printHTML(out); } else { await typeOut(out); }
+  }
+
+  /* =====================================================
+     Input: history, autocomplete, skip-typing
+  ===================================================== */
+  inputEl.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      const val = inputEl.value; history.push(val); historyIdx = history.length; setHint(''); processCommandInput(val); inputEl.value = '';
+    } else if(e.key === 'ArrowUp'){
+      e.preventDefault(); if(history.length){ historyIdx = Math.max(0, historyIdx-1); inputEl.value = history[historyIdx] || ''; setTimeout(()=>inputEl.setSelectionRange(9999,9999)); }
+    } else if(e.key === 'ArrowDown'){
+      e.preventDefault(); if(history.length){ historyIdx = Math.min(history.length, historyIdx+1); inputEl.value = history[historyIdx] || ''; setTimeout(()=>inputEl.setSelectionRange(9999,9999)); }
+    } else if(e.key === 'Tab'){
+      e.preventDefault();
+      const v = inputEl.value.trim(); if(!v) return;
+      const parts = v.split(/\s+/); const head = parts[0];
+      const matches = commandNames.filter(c => c.startsWith(head.toLowerCase()));
+      if(matches.length === 1){ parts[0] = matches[0]; inputEl.value = parts.join(' ') + ' '; }
+    } else if(e.key === 'Escape'){
+      skipTyping();
+    }
+  });
+
+  inputEl.addEventListener('input', () => {
+    const v = inputEl.value.trim();
+    if(!v){ setHint(''); return; }
+    const parts = v.split(/\s+/); const head = parts[0].toLowerCase();
+    const matches = commandNames.filter(c => c.startsWith(head));
+    if(matches.length === 1 && matches[0] !== head){ setHint(matches[0]); }
+    else if(matches.length > 1){ setHint(matches.slice(0,4).join('  ')); }
+    else { setHint(''); }
+  });
+
+  document.body.addEventListener('click', ()=> inputEl.focus());
+  
+/* ========= Boot ========= */
+async function boot(){
+  await typeOut("Welcome to Shashi Shekhar's Terminal Portfolio.", 24);
+  await typeOut('Type "help" for a list of commands.', 24);
+  printHTML('<div id="footer-note">Press Esc to skip typing. Try <code>theme neon</code>, <code>projects</code>, or <code>skills</code>.</div>');
+}
+boot();
+</script>
+</body>
+</html>
